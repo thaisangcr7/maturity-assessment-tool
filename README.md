@@ -20,3 +20,5 @@ A browser-based digital maturity self-assessment for US regional and community b
 
 ## Credits
 This is a team-built tool by **Group 2, ISM 6346 Digital Business Transformation (USF, Fall 2026)**: Jorge Ayala (Framework Designer), Fabianne Santos (Question Author) and Sang Thai (Tool Builder). This copy is hosted individually by Sang Thai for the Week 5 Git & GitHub exercise.
+
+Published by Sang Thai for ISM 6346 Week 5 (Git & GitHub Basics).
