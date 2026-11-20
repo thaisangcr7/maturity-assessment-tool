@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regional Bank Digital Maturity Assessment</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<style>
+  :root{
+    --ink:#15212e; --muted:#5b6b7b; --line:#dde3ea; --bg:#f5f7fa; --card:#fff;
+    --accent:#0f5c8c; --accent-soft:#e4f0f8; --warn:#a8461d; --warn-soft:#fbeee7; --ok:#1d7a4f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+       color:var(--ink);background:var(--bg);line-height:1.5;font-size:16px}
+  header{background:var(--ink);color:#fff;padding:28px 20px 24px}
+  .wrap{max-width:880px;margin:0 auto;padding:0 20px}
+  header .wrap{padding:0}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:-.01em}
+  header p{margin:0;color:#c7d3df;font-size:15px}
+  .meta{margin-top:12px;font-size:13px;color:#9fb1c3}
+  main.wrap{padding:24px 20px 60px}
+  .intro{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:20px;font-size:15px}
+  .intro ul{margin:8px 0 0;padding-left:20px}
+  .progress{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+  .bar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+  .bar span{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  section.dim{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:18px;overflow:hidden}
+  .dim-head{padding:16px 20px;border-bottom:1px solid var(--line);background:#fafbfc}
+  .dim-head h2{margin:0;font-size:19px}
+  .dim-head .tag{display:inline-block;font-size:12px;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 7px;margin-left:8px;vertical-align:2px;font-weight:600}
+  .dim-head p{margin:6px 0 0;color:var(--muted);font-size:14px}
+  details{margin-top:8px;font-size:14px}
+  summary{cursor:pointer;color:var(--accent);font-weight:600}
+  details ol{margin:8px 0 0;padding-left:22px;color:var(--ink)}
+  details li{margin-bottom:4px}
+  .q{padding:16px 20px;border-bottom:1px solid var(--line)}
+  .q:last-child{border-bottom:none}
+  .q.missing{background:var(--warn-soft)}
+  .q-text{font-weight:600;margin-bottom:10px}
+  .q-num{color:var(--muted);font-weight:500;margin-right:6px}
+  .opts{display:grid;gap:6px}
+  .opt{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:7px;cursor:pointer;font-size:15px;background:#fff}
+  .opt:hover{border-color:#b9c6d3}
+  .opt input{margin-top:4px;accent-color:var(--accent)}
+  .opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:24px 0}
+  button{font:inherit;border-radius:7px;border:1px solid var(--accent);padding:10px 18px;cursor:pointer}
+  .primary{background:var(--accent);color:#fff;font-weight:600}
+  .ghost{background:#fff;color:var(--accent)}
+  .small{font-size:13px;padding:6px 12px}
+  #formMsg{color:var(--warn);font-size:14px;font-weight:600}
+  #results{display:none}
+  .res-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+  .res-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:20px;align-items:center}
+  .res-grid > *{min-width:0}
+  @media (max-width:720px){.res-grid{grid-template-columns:1fr}}
+  .chart-box{position:relative;height:360px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  tr.low td{color:var(--warn)}
+  .overall{font-size:14px;color:var(--muted);margin-top:10px}
+  .profile h3{margin:0 0 4px;font-size:22px}
+  .profile .rule{font-size:13px;color:var(--muted);margin-bottom:10px}
+  .profile .lowest{background:var(--warn-soft);border-radius:7px;padding:10px 12px;margin:12px 0;font-size:15px}
+  .profile .next{border-left:4px solid var(--ok);padding:6px 12px;margin-top:12px;background:#eef7f2;border-radius:0 7px 7px 0}
+  .profile .next b{color:var(--ok)}
+  .demo{font-size:13px;color:var(--muted)}
+  footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;margin-top:30px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Regional Bank Digital Maturity Assessment</h1>
+    <p>20 questions across five dimensions, calibrated for US regional and community banks. About 8 minutes.</p>
+    <div class="meta" id="metaLine"></div>
+  </div>
+</header>
+<main class="wrap">
+  <div class="intro">
+    <b>How to answer:</b> pick the option that describes what the bank <i>does today</i>, and what you could show an examiner, not what's on the roadmap.
+    <ul>
+      <li>Each answer maps to a stage from 1 (ad hoc) to 5 (optimizing). Each dimension score is the average of its four answers.</li>
+      <li>You'll see results once every question is answered. The results show your radar, your two lowest dimensions, and the score pattern they point to.</li>
+      <li>If you're scoring your own area, have someone outside it check you. Self-assessments usually come out about a stage high.</li>
+    </ul>
+  </div>
+
+  <div class="progress"><span id="progText">0 of 20 answered</span><div class="bar"><span id="progBar"></span></div></div>
+
+  <form id="assessment" novalidate></form>
+
+  <div class="actions">
+    <button type="button" class="primary" id="submitBtn">See my results</button>
+    <button type="button" class="ghost" id="resetBtn">Start over</button>
+    <span id="formMsg"></span>
+  </div>
+  <div class="demo">Demo: <button type="button" class="ghost small" data-sim="2">Fill as a Stage 2 bank</button>
+    <button type="button" class="ghost small" data-sim="4">Fill as a Stage 4 bank</button></div>
+
+  <div id="results">
+    <h2 style="margin:34px 0 14px">Your results</h2>
+    <div class="res-card">
+      <div class="res-grid">
+        <div class="chart-box"><canvas id="radar" aria-label="Radar chart of five dimension scores"></canvas></div>
+        <div>
+          <table id="scoreTable"><thead><tr><th>Dimension</th><th style="text-align:right">Score</th></tr></thead><tbody></tbody></table>
+          <div class="overall" id="overall"></div>
+        </div>
+      </div>
+    </div>
+    <div class="res-card profile" id="profileCard"></div>
+  </div>
+
+  <footer>
+    Team-built tool for ISM 6346 Digital Business Transformation (USF, Fall 2026), hosted individually on GitHub Pages.
+    <span id="teamLine"></span>
+    Scores are a capability read, not a strategic verdict. Pair them with a strategy-fit check before deciding where to invest.
+  </footer>
+</main>
+
+<script>
+// ===== DATA LAYER =====
+// Everything the tool shows lives here: dimensions, stage descriptions, questions, profiles.
+// Edit this block to change the framework or the Interpretation Guide. No markup changes needed.
+
+const TOOL_META = {
+  title: "Regional Bank Digital Maturity Assessment",
+  industry: "US regional & community banks",
+  rubricVintage: "2026-Q4",
+  team: "Group 2 (ISM 6346, USF, Fall 2026): Jorge Ayala, Framework Designer · Fabianne Santos, Question Author · Sang Thai, Tool Builder"
+};
+
+// Tie-break order when dimensions share the lowest score. In banking, data is the constraint
+// under everything else, and change capacity decides whether anything gets used.
+const TIE_PRIORITY = ["data", "change", "ai", "ops", "channels"];
+
+const DIMENSIONS = [
+  {
+    id: "data",
+    name: "Core & Customer Data",
+    covers: "Data infrastructure",
+    description: "How current, connected and trustworthy the bank's customer and account data is, from the core system out to reporting and APIs.",
+    stages: [
+      "Accounts sit on a vendor batch core that updates overnight. Each product has its own customer ID, and regulatory and management reports are built by hand in spreadsheets.",
+      "Some extracts are automated, and a few products are matched to one customer by hand. Reports still get reconciled in Excel every cycle, and there are no APIs beyond the vendor's standard ones.",
+      "A central warehouse feeds most reports, using written data definitions. Bankers see most of a customer's products on one CRM screen, refreshed daily, and deposit products can be reached through the vendor's API gateway.",
+      "A governed data platform has documented lineage, automated data-quality checks and named owners. Balances update intraday or in real time across products, and the bank runs its own API layer.",
+      "Real-time events flow from the core to fraud, the app and analytics at the same moment. Data-quality metrics go to the executive team, and partners consume the bank's versioned, monitored APIs."
+    ]
+  },
+  {
+    id: "channels",
+    name: "Digital Channels",
+    covers: "Customer interaction channels",
+    description: "How much of the customer relationship actually runs through app and web, and whether journeys carry across channels.",
+    stages: [
+      "New accounts mostly can't be opened online. The app covers balances and transfers, and the vendor ships upgrades once or twice a year.",
+      "Online account opening exists but drives a small share of new accounts. Branch staff can see an online application but have to re-key it, and releases come quarterly through vendor configuration.",
+      "A meaningful share of checking accounts open digitally, and customers can finish a couple of the harder jobs (like card disputes) online. Saved applications resume across web and app, and the bank ships monthly with some A/B tests.",
+      "A large share of accounts open digitally, and most hard jobs, including business accounts, can be done online. A journey started in the app can be finished in a branch or call center with full context, and the bank ships every two weeks with tests on key journeys.",
+      "Digital is the default relationship. The bank tracks abandoned journeys and follows up on them, and it runs several experiments at once against journey-level KPIs."
+    ]
+  },
+  {
+    id: "ops",
+    name: "Operations & Lending Automation",
+    covers: "Operational automation",
+    description: "How work moves from application to booking and from payment to settlement, and whether anyone owns the end-to-end flow.",
+    stages: [
+      "Loan files are paper or PDF and get re-keyed into each system. A small-business decision takes weeks, and there are no end-to-end process owners.",
+      "A loan origination system covers some products, but booking to the core is still manual. The bank receives instant payments but can't send them, and metrics are tracked by department.",
+      "Every product runs through the origination system, with decisions in days. Top processes have named owners and a monthly cycle-time dashboard, and the bank sends and receives instant payments for some segments.",
+      "Data flows straight through from application to booking, and only exceptions go to a work queue. Small-business decisions take a day or two, instant payments run for retail and business, and dashboards update in near real time.",
+      "Straight-through processing is the norm, and same-day decisions are routine. Process data ranks the automation backlog, instant payments are the default rail, and reconciliation happens in real time."
+    ]
+  },
+  {
+    id: "ai",
+    name: "AI in Risk & Service",
+    covers: "AI/ML deployment",
+    description: "Whether machine learning and generative AI are actually in production in fraud, credit and service, and how they are tested and monitored.",
+    stages: [
+      "Fraud runs on vendor rules that are reviewed once a year. Credit uses bureau scores plus manual review, and staff have no approved generative AI tool.",
+      "Vendor fraud scores get tuned by hand after losses, and credit uses standard vendor scorecards. Generative AI exists only in pilots, and testing means spot checks.",
+      "ML fraud scoring covers cards and digital payments and is reviewed monthly. At least one bank-built credit scorecard is in use, one internal generative AI use case is live with human review, and a fixed test set runs before major changes.",
+      "Real-time ML fraud models cover cards, ACH, wires and instant payments. Cash-flow underwriting is live on two or more products under model-risk validation, and several generative AI use cases run from an AI inventory with automated offline evals and production monitoring.",
+      "Customer-facing and internal AI are both in production. Every model or prompt change has to pass a standing eval suite, eval sets get refreshed on a schedule, and drift and fair-lending checks run continuously."
+    ]
+  },
+  {
+    id: "change",
+    name: "Change & Talent Readiness",
+    covers: "Organizational change capacity",
+    description: "Whether people across the bank, not just IT, have the skills, sponsorship and incentives to adopt what gets built.",
+    stages: [
+      "Digital skills sit in a small IT group. There's no measure of AI use, and leadership only looks at digital work at budget time.",
+      "A central analytics team exists, but the lines of business have no named digital leads. Adoption gets reported, but nobody is accountable for it, and old processes keep running in parallel.",
+      "Some lines of business have named analytics leads. Leaders review digital programs quarterly, mostly on schedule and budget, and up to 30% of non-IT staff use an approved AI tool weekly.",
+      "Every line of business has a named lead and published job ladders. Managers are trained before the frontline and carry adoption targets, and leaders review adoption metrics quarterly.",
+      "Most staff use AI weekly, and digital roles are mostly filled from inside through an internal academy. Leaders review adoption monthly, and old processes are retired on a set date once adoption hits its target."
+    ]
+  }
+];
+
+// Each option carries an explicit integer value 1-5 (its maturity level).
+const QUESTIONS = [
+  // ---- Core & Customer Data ----
+  { id: "d1", dim: "data", text: "How often are account balances and transactions updated in the systems your bankers and customers see?",
+    options: [
+      { value: 1, label: "Once a day, in the overnight batch" },
+      { value: 2, label: "A few batch runs during the day" },
+      { value: 3, label: "Near real time for deposits; loans and cards still batch" },
+      { value: 4, label: "Real time across deposits, loans and cards through an API layer" },
+      { value: 5, label: "Real-time event stream that fraud, the app and analytics all read at the same moment" } ] },
+  { id: "d2", dim: "data", text: "Can a banker see one customer's deposits, loans, cards and recent service contacts on a single screen?",
+    options: [
+      { value: 1, label: "No. Separate systems with different customer IDs" },
+      { value: 2, label: "Deposits and loans only, matched by hand" },
+      { value: 3, label: "Most products on one CRM screen, refreshed daily" },
+      { value: 4, label: "All products plus service history, one customer ID, refreshed intraday" },
+      { value: 5, label: "All of that, and the same profile automatically drives next-best-action offers" } ] },
+  { id: "d3", dim: "data", text: "Where do the call report, CECL inputs and management profitability reports get their data?",
+    options: [
+      { value: 1, label: "Spreadsheets assembled by hand from system extracts" },
+      { value: 2, label: "Some automated extracts, reconciled in Excel every cycle" },
+      { value: 3, label: "A central data warehouse with written data definitions feeds most of them" },
+      { value: 4, label: "A governed data platform with documented lineage, automated quality checks and named owners" },
+      { value: 5, label: "All of that, plus data-quality metrics reported to the executive team, with issues auto-ticketed and trended" } ] },
+  { id: "d4", dim: "data", text: "Which products can internal apps or outside partners reach through documented APIs?",
+    options: [
+      { value: 1, label: "None. The core is closed" },
+      { value: 2, label: "A few, through the vendor's standard connectors" },
+      { value: 3, label: "Most deposit products, through the vendor's API gateway" },
+      { value: 4, label: "Deposits, loans and payments, through the bank's own documented API layer" },
+      { value: 5, label: "A versioned, monitored API platform that outside partners use in production (embedded or BaaS)" } ] },
+
+  // ---- Digital Channels ----
+  { id: "c1", dim: "channels", text: "In the last 12 months, what share of new consumer checking accounts were opened fully digitally, with no branch visit?",
+    options: [
+      { value: 1, label: "Under 7%, or accounts can't be opened online" },
+      { value: 2, label: "7–15%" },
+      { value: 3, label: "15–25%" },
+      { value: 4, label: "25–40%" },
+      { value: 5, label: "Over 40%" } ] },
+  { id: "c2", dim: "channels", text: "Which of these can a customer finish entirely in the app or online, with no call or branch visit: (a) open a checking account, (b) dispute a card charge, (c) open a business account, (d) apply for a small-business loan?",
+    options: [
+      { value: 1, label: "None of them" },
+      { value: 2, label: "One of them" },
+      { value: 3, label: "Two of them" },
+      { value: 4, label: "Three of them" },
+      { value: 5, label: "All four, and customers can track each one's status in the app" } ] },
+  { id: "c3", dim: "channels", text: "If a customer starts a loan or account application in the app, can they finish it in a branch or by phone without starting over?",
+    options: [
+      { value: 1, label: "No. Each channel has its own separate process" },
+      { value: 2, label: "Staff can see the application but have to re-key it" },
+      { value: 3, label: "It resumes between web and app, but not in the branch or call center" },
+      { value: 4, label: "It resumes in app, web, branch and call center with full context" },
+      { value: 5, label: "All of that, plus abandoned applications trigger follow-up that's tracked in journey metrics" } ] },
+  { id: "c4", dim: "channels", text: "How often does the bank ship changes to its app and website?",
+    options: [
+      { value: 1, label: "Once or twice a year, when the vendor upgrades" },
+      { value: 2, label: "Quarterly, through vendor configuration" },
+      { value: 3, label: "Monthly, with occasional A/B tests" },
+      { value: 4, label: "Every two weeks or faster, with A/B tests on key journeys" },
+      { value: 5, label: "Continuously, with several experiments running at once against journey KPIs" } ] },
+
+  // ---- Operations & Lending Automation ----
+  { id: "o1", dim: "ops", text: "For a small-business loan under $250K, how long does it typically take from a complete application to a credit decision?",
+    options: [
+      { value: 1, label: "More than 2 weeks" },
+      { value: 2, label: "1–2 weeks" },
+      { value: 3, label: "3–5 business days" },
+      { value: 4, label: "1–2 business days" },
+      { value: 5, label: "Same day, and most are auto-decisioned" } ] },
+  { id: "o2", dim: "ops", text: "How does loan data get from the application through underwriting and into the core at booking?",
+    options: [
+      { value: 1, label: "Paper or PDF files, re-keyed into each system" },
+      { value: 2, label: "An origination system for some products; booking into the core is re-keyed" },
+      { value: 3, label: "An origination system for every product; booking into the core is still a manual step" },
+      { value: 4, label: "Straight through from application to booking, with only exceptions going to a work queue" },
+      { value: 5, label: "Straight through, with every handoff timed and cycle-time targets reviewed monthly" } ] },
+  { id: "o3", dim: "ops", text: "Where does the bank stand on instant payments (FedNow or RTP)?",
+    options: [
+      { value: 1, label: "Not connected, and no date set" },
+      { value: 2, label: "Receive-only" },
+      { value: 3, label: "Send and receive for some customer segments" },
+      { value: 4, label: "Send and receive for retail and business, with real-time fraud screening" },
+      { value: 5, label: "Instant is the default rail, with request-for-pay and real-time reconciliation" } ] },
+  { id: "o4", dim: "ops", text: "Do the top customer processes (account opening, loan booking, disputes) each have a named end-to-end owner and a cycle-time dashboard?",
+    options: [
+      { value: 1, label: "No end-to-end owners; metrics are tracked by department" },
+      { value: 2, label: "Owners for some, with monthly metrics in spreadsheets" },
+      { value: 3, label: "Named owners for all of them, plus a monthly dashboard" },
+      { value: 4, label: "Owners plus near-real-time dashboards, and variances get investigated" },
+      { value: 5, label: "All of that, plus improvement cycles tied to customer outcomes and the automation backlog ranked from process data" } ] },
+
+  // ---- AI in Risk & Service ----
+  { id: "a1", dim: "ai", text: "How does the bank detect fraud on cards and payments?",
+    options: [
+      { value: 1, label: "Vendor rules, reviewed about once a year" },
+      { value: 2, label: "Rules plus vendor scores, tuned by hand after losses" },
+      { value: 3, label: "ML scoring on cards and digital payments, with performance reviewed monthly" },
+      { value: 4, label: "Real-time ML across cards, ACH, wires and instant payments, with live performance monitoring" },
+      { value: 5, label: "All of that, plus scheduled retraining and champion/challenger tests" } ] },
+  { id: "a2", dim: "ai", text: "What goes into consumer and small-business credit decisions besides the credit bureau report?",
+    options: [
+      { value: 1, label: "Nothing. Bureau score plus manual review" },
+      { value: 2, label: "Standard vendor scorecards" },
+      { value: 3, label: "A bank-built scorecard on its own data for at least one product" },
+      { value: 4, label: "Models using cash-flow or transaction data on two or more products, validated under model-risk rules" },
+      { value: 5, label: "All of that, plus ongoing drift and fair-lending monitoring, with models refreshed at least yearly" } ] },
+  { id: "a3", dim: "ai", text: "Where is generative AI actually in production today, with real users, not as a pilot?",
+    options: [
+      { value: 1, label: "Nowhere. There's no approved tool" },
+      { value: 2, label: "Pilots and proofs of concept only" },
+      { value: 3, label: "One internal use case (for example, policy search for staff) with human review" },
+      { value: 4, label: "Several use cases across functions, tracked in an AI inventory with an approval process" },
+      { value: 5, label: "Both customer-facing and internal use cases, managed as a portfolio" } ] },
+  { id: "a4", dim: "ai", text: "Before an AI model or prompt change goes live, what testing happens?",
+    options: [
+      { value: 1, label: "Ad hoc spot checks" },
+      { value: 2, label: "A fixed test set, run by hand before major changes" },
+      { value: 3, label: "An automated offline eval suite, with results tracked over time" },
+      { value: 4, label: "Offline evals plus monitoring of live production traffic, with alerts" },
+      { value: 5, label: "Evals run as a product, with named owners, scheduled test-set refreshes and formal go/no-go gates" } ] },
+
+  // ---- Change & Talent Readiness ----
+  { id: "t1", dim: "change", text: "Going by usage logs, what share of employees outside IT use an approved AI assistant at least weekly?",
+    options: [
+      { value: 1, label: "There's no approved tool, or it isn't measured" },
+      { value: 2, label: "Under 10%" },
+      { value: 3, label: "10–30%" },
+      { value: 4, label: "30–60%" },
+      { value: 5, label: "Over 60%" } ] },
+  { id: "t2", dim: "change", text: "Do consumer, commercial and wealth each have a named analytics or digital lead, and are there published job ladders for data roles?",
+    options: [
+      { value: 1, label: "Neither" },
+      { value: 2, label: "Only a central IT or analytics team" },
+      { value: 3, label: "Named leads in some lines of business, but no ladders" },
+      { value: 4, label: "Named leads in every line of business, plus published ladders" },
+      { value: 5, label: "All of that, plus an internal academy that fills most digital roles from inside" } ] },
+  { id: "t3", dim: "change", text: "How often do the executive team or the board review digital and AI programs, and on what?",
+    options: [
+      { value: 1, label: "Only at budget time" },
+      { value: 2, label: "Once a year, on spend" },
+      { value: 3, label: "Quarterly, on schedule and budget" },
+      { value: 4, label: "Quarterly, on adoption metrics with named owners" },
+      { value: 5, label: "Monthly, on adoption metrics, and managers' scorecards carry adoption targets" } ] },
+  { id: "t4", dim: "change", text: "When a new system launches, what happens with branch and operations managers and with the old process?",
+    options: [
+      { value: 1, label: "Nothing specific. The old process keeps running indefinitely" },
+      { value: 2, label: "Adoption is tracked, but no manager is accountable for it" },
+      { value: 3, label: "Adoption is reported by team, and some managers get trained first" },
+      { value: 4, label: "Managers are trained before the frontline and carry adoption targets" },
+      { value: 5, label: "All of that, and the old process is retired on a set date once adoption hits target" } ] }
+];
+
+// Interpretation Guide: five archetypal score patterns, checked in this order.
+// The first one that matches is shown. If none match, the tool falls back to the
+// lowest-dimension playbook below. The rules live here so the guide and the tool can't drift apart.
+const PROFILES = [
+  { id: "branch-first", name: "Branch-First Bank",
+    rule: "Every dimension under 2.5",
+    test: s => Object.values(s).every(v => v < 2.5),
+    meaning: "Nothing is badly behind anything else, because nothing has really started. Most of the bank's value still runs through branches and people, and peers who digitize account opening and lending will slowly pull deposits and small-business loans away.",
+    action: "Make the cost of waiting concrete for the board (deposit share lost to digital-first banks), then fund one foundation project first: a single customer ID and an API layer over the core." },
+  { id: "digital-leader", name: "Digital Leader",
+    rule: "Every dimension 3.5 or higher",
+    test: s => Object.values(s).every(v => v >= 3.5),
+    meaning: "The bank is ahead on every dimension against today's rubric. The risk now is standing still while the frontier moves: a Stage 4 in 2026 can be a Stage 3 by 2027.",
+    action: "Re-run this assessment every quarter against a refreshed rubric, and put the next dollars into eval discipline and agent-style AI in one business line." },
+  { id: "shiny-app", name: "Shiny App, Siloed Core",
+    rule: "Core & Customer Data at least 1.0 below every other dimension",
+    test: s => Object.entries(s).every(([k, v]) => k === "data" || s.data <= v - 1.0),
+    meaning: "The front end has outrun the data underneath it. Every new app feature, AI model and dashboard gets rebuilt on fragile extracts, so progress on the other dimensions will stall and get more expensive.",
+    action: "Pause new channel features for a cycle and fund the single customer view plus documented data lineage. The next AI use case shouldn't start until it can draw on governed data." },
+  { id: "execution-gap", name: "The Execution Gap",
+    rule: "Change & Talent Readiness at least 1.0 below every other dimension",
+    test: s => Object.entries(s).every(([k, v]) => k === "change" || s.change <= v - 1.0),
+    meaning: "The bank has built more than its people are ready to use. Expect parallel spreadsheets, low adoption and a frozen middle that gets measured on delivery, not usage.",
+    action: "Train branch and operations managers before the frontline, give each one an adoption target, and set a retirement date for the old process on the next system that launches." },
+  { id: "digitalized", name: "Digitalized, Not Transforming",
+    rule: "Digital Channels 3.5 or higher while AI in Risk & Service is 2.5 or lower",
+    test: s => s.channels >= 3.5 && s.ai <= 2.5,
+    meaning: "Customers get a good app, but decisions behind it (fraud, credit, service) still run the old way. The bank digitized the storefront without changing how it makes money or manages risk.",
+    action: "Pick one AI use case with a measurable loss or speed target, such as real-time fraud scoring on instant payments or cash-flow underwriting for small business, and launch it with an eval suite from day one." }
+];
+
+// Fallback when no archetype matches: the move for the lowest dimension.
+const LOWEST_PLAYBOOK = {
+  data: "Start with a single customer ID across products and automate the top three regulatory reports off one warehouse.",
+  channels: "Rebuild digital account opening first and measure what share of new accounts it wins each month.",
+  ops: "Name an end-to-end owner for small-business lending and put its cycle time on a dashboard the COO sees monthly.",
+  ai: "Move one fraud or credit model into production with a fixed eval set and monthly performance review.",
+  change: "Give every line of business a named digital lead and track weekly AI-tool usage outside IT."
+};
+
+
+// ===== APP LOGIC =====
+(function(){
+  const STAGE_NAMES = ["Initial", "Developing", "Defined", "Managed", "Optimizing"];
+  const form = document.getElementById("assessment");
+  const answers = {};          // question id -> integer value 1..5
+  let chart = null;
+
+  document.getElementById("metaLine").textContent =
+    "Industry: " + TOOL_META.industry + " · Rubric vintage: " + TOOL_META.rubricVintage;
+  document.getElementById("teamLine").textContent = TOOL_META.team + ".";
+
+  // --- render questions from the data structure ---
+  let qn = 0;
+  DIMENSIONS.forEach(d => {
+    const sec = document.createElement("section");
+    sec.className = "dim";
+    const stagesHtml = d.stages.map((s, i) => "<li><b>Stage " + (i + 1) + " · " + STAGE_NAMES[i] + ":</b> " + s + "</li>").join("");
+    sec.innerHTML =
+      '<div class="dim-head"><h2>' + d.name + '<span class="tag">' + d.covers + '</span></h2>' +
+      '<p>' + d.description + '</p>' +
+      '<details><summary>What Stage 1 to 5 looks like</summary><ol>' + stagesHtml + '</ol></details></div>';
+    QUESTIONS.filter(q => q.dim === d.id).forEach(q => {
+      qn++;
+      const div = document.createElement("div");
+      div.className = "q"; div.id = "q-" + q.id;
+      const opts = q.options.map(o =>
+        '<label class="opt"><input type="radio" name="' + q.id + '" value="' + o.value + '"><span>' + o.label + '</span></label>').join("");
+      div.innerHTML = '<div class="q-text"><span class="q-num">' + qn + '.</span>' + q.text + '</div><div class="opts">' + opts + '</div>';
+      sec.appendChild(div);
+    });
+    form.appendChild(sec);
+  });
+
+  form.addEventListener("change", e => {
+    if (e.target.type !== "radio") return;
+    answers[e.target.name] = parseInt(e.target.value, 10);
+    const q = document.getElementById("q-" + e.target.name);
+    q.classList.remove("missing");
+    q.querySelectorAll(".opt").forEach(l => l.classList.toggle("sel", l.querySelector("input").checked));
+    updateProgress();
+  });
+
+  function updateProgress(){
+    const n = Object.keys(answers).length;
+    document.getElementById("progText").textContent = n + " of " + QUESTIONS.length + " answered";
+    document.getElementById("progBar").style.width = (100 * n / QUESTIONS.length) + "%";
+    if (n === QUESTIONS.length) document.getElementById("formMsg").textContent = "";
+  }
+
+  // --- scoring ---
+  function dimensionScores(){
+    const s = {};
+    DIMENSIONS.forEach(d => {
+      const vals = QUESTIONS.filter(q => q.dim === d.id).map(q => answers[q.id]);
+      s[d.id] = Math.round(100 * vals.reduce((a, b) => a + b, 0) / vals.length) / 100;
+    });
+    return s;
+  }
+
+  // Sorted low to high; ties broken by the banking priority order in TIE_PRIORITY.
+  function rankLowest(s){
+    return Object.keys(s).sort((a, b) => (s[a] - s[b]) || (TIE_PRIORITY.indexOf(a) - TIE_PRIORITY.indexOf(b)));
+  }
+
+  // Two lowest dimensions; if more than two share the lowest score, show every tied one.
+  function lowestSet(s){
+    const r = rankLowest(s);
+    const min = s[r[0]];
+    const tied = r.filter(k => s[k] === min);
+    return tied.length >= 2 ? tied : r.slice(0, 2);
+  }
+
+  function pickProfile(s){
+    for (const p of PROFILES) if (p.test(s)) return p;
+    return null;
+  }
+
+  // Split long axis names over two lines so the radar labels never get clipped.
+  function wrapLabel(name){
+    const w = name.split(" "); if (w.length < 3) return name;
+    const mid = Math.ceil(w.length / 2); return [w.slice(0, mid).join(" "), w.slice(mid).join(" ")];
+  }
+
+  const nameOf = id => DIMENSIONS.find(d => d.id === id).name;
+
+  // --- submit ---
+  document.getElementById("submitBtn").addEventListener("click", () => {
+    const missing = QUESTIONS.filter(q => !(q.id in answers));
+    if (missing.length){
+      missing.forEach(q => document.getElementById("q-" + q.id).classList.add("missing"));
+      document.getElementById("formMsg").textContent =
+        missing.length + " question" + (missing.length > 1 ? "s" : "") + " still need an answer (highlighted).";
+      document.getElementById("q-" + missing[0].id).scrollIntoView({behavior: "smooth", block: "center"});
+      return;
+    }
+    showResults();
+  });
+
+  function showResults(){
+    const s = dimensionScores();
+    const low = lowestSet(s);
+    const res = document.getElementById("results");
+    res.style.display = "block";
+
+    // table
+    const tb = document.querySelector("#scoreTable tbody");
+    tb.innerHTML = DIMENSIONS.map(d =>
+      '<tr class="' + (low.includes(d.id) ? "low" : "") + '"><td>' + d.name + (low.includes(d.id) ? " ▼" : "") +
+      '</td><td class="num">' + s[d.id].toFixed(2) + '</td></tr>').join("");
+    const avg = Object.values(s).reduce((a, b) => a + b, 0) / 5;
+    document.getElementById("overall").textContent =
+      "Average " + avg.toFixed(2) + " (roughly Stage " + Math.round(avg) + ", " + STAGE_NAMES[Math.round(avg) - 1] +
+      "). The pattern matters more than this number. ▼ marks your lowest dimensions.";
+
+    // radar
+    const ctx = document.getElementById("radar");
+    const data = {
+      labels: DIMENSIONS.map(d => wrapLabel(d.name)),
+      datasets: [{ label: "Your bank", data: DIMENSIONS.map(d => s[d.id]),
+        backgroundColor: "rgba(15,92,140,0.18)", borderColor: "#0f5c8c", borderWidth: 2,
+        pointBackgroundColor: DIMENSIONS.map(d => low.includes(d.id) ? "#a8461d" : "#0f5c8c"), pointRadius: 5 }]
+    };
+    const opts = { responsive: true, maintainAspectRatio: false, animation: false,
+      layout: { padding: window.innerWidth < 500 ? { left: 18, right: 18, top: 4, bottom: 4 } : 4 }, plugins: { legend: { display: false } },
+      scales: { r: { min: 0, max: 5, ticks: { stepSize: 1, backdropColor: "transparent" },
+        pointLabels: { font: { size: window.innerWidth < 500 ? 10 : 12, weight: "600" }, color: "#15212e", padding: 6 } } } };
+    if (chart) { chart.data = data; chart.update(); } else { chart = new Chart(ctx, { type: "radar", data, options: opts }); }
+
+    // interpretation
+    const p = pickProfile(s);
+    const lowNames = low.map(id => "<b>" + nameOf(id) + "</b> (" + s[id].toFixed(2) + ")").join(", ");
+    const tieNote = (low.length >= 2 && s[low[0]] === s[low[1]]) ? " These are tied, so both are shown; the first one listed is where banks usually need to start." : "";
+    let html = '<div class="lowest">Lowest dimensions: ' + lowNames + "." + tieNote + "</div>";
+    if (p){
+      html = '<div class="rule">Your score pattern matches</div><h3>' + p.name + '</h3><div class="rule">Pattern: ' + p.rule + '</div>' + html +
+        "<p>" + p.meaning + "</p>" +
+        '<div class="next"><b>Next move:</b> ' + p.action + "</div>";
+    } else {
+      const first = rankLowest(s)[0];
+      html = '<div class="rule">Your score pattern</div><h3>Uneven Builder</h3><div class="rule">No single archetype fits. The guide falls back to your lowest dimension.</div>' + html +
+        "<p>Your bank is ahead in some places and behind in others, but none of the five classic patterns dominates. The highest-leverage move is usually to lift the lowest dimension before it caps the others.</p>" +
+        '<div class="next"><b>Next move (' + nameOf(first) + '):</b> ' + LOWEST_PLAYBOOK[first] + "</div>";
+    }
+    document.getElementById("profileCard").innerHTML = html;
+    res.scrollIntoView({behavior: "smooth"});
+  }
+
+  // --- reset & demo fill ---
+  function clearAll(){
+    Object.keys(answers).forEach(k => delete answers[k]);
+    form.querySelectorAll("input[type=radio]").forEach(i => i.checked = false);
+    form.querySelectorAll(".opt").forEach(l => l.classList.remove("sel"));
+    form.querySelectorAll(".q").forEach(q => q.classList.remove("missing"));
+    document.getElementById("results").style.display = "none";
+    document.getElementById("formMsg").textContent = "";
+    updateProgress();
+  }
+  document.getElementById("resetBtn").addEventListener("click", () => { clearAll(); window.scrollTo({top: 0}); });
+
+  // Sample organizations for testing: a branch-heavy community bank (mostly 2s)
+  // and a strong regional (mostly 4s), each with a realistic uneven spot.
+  const SIMS = {
+    2: { d1:1, d2:2, d3:2, d4:1, c1:2, c2:3, c3:2, c4:2, o1:2, o2:2, o3:2, o4:1, a1:2, a2:2, a3:2, a4:1, t1:2, t2:2, t3:2, t4:2 },
+    4: { d1:4, d2:4, d3:4, d4:4, c1:4, c2:5, c3:4, c4:4, o1:4, o2:4, o3:4, o4:3, a1:5, a2:4, a3:4, a4:3, t1:3, t2:4, t3:4, t4:3 }
+  };
+  document.querySelectorAll("[data-sim]").forEach(b => b.addEventListener("click", () => {
+    clearAll();
+    const sim = SIMS[b.dataset.sim];
+    Object.entries(sim).forEach(([qid, v]) => {
+      const inp = form.querySelector('input[name="' + qid + '"][value="' + v + '"]');
+      inp.checked = true; inp.dispatchEvent(new Event("change", {bubbles: true}));
+    });
+    showResults();
+  }));
+})();
+</script>
+</body>
+</html>
